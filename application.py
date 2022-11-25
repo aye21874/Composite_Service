@@ -1,5 +1,5 @@
 import logging.handlers
-
+import requests
 from flask import Flask, request, Response
 
 from ColumbiaStudentResource import ColumbiaStudentResource
@@ -145,16 +145,16 @@ welcome = """
 """
 
 
-@app.route("/", methods=["GET", "PUT", "POST", "DELETE"])
-def do_basic():
-
-    method = request.method
-    path = request.path
-
-    response_txt = welcome
-
-    rsp = Response(status=200, response=response_txt, content_type="text/html")
-    return rsp
+# @app.route("/", methods=["GET", "PUT", "POST", "DELETE"])
+# def do_basic():
+#
+#     method = request.method
+#     path = request.path
+#
+#     response_txt = welcome
+#
+#     rsp = Response(status=200, response=response_txt, content_type="text/html")
+#     return rsp
 
 @app.get("/api/health")
 def get_health():
@@ -171,31 +171,31 @@ def get_health():
     return result
 
 
-@app.route("/api/courses/<uni>", methods=["GET"])
-def get_courses_by_uni(uni):
-    #get all courses enrolled by a particular uni
+# @app.route("/api/courses/<uni>", methods=["GET"])
+# def get_courses_by_uni(uni):
+#     #get all courses enrolled by a particular uni
+#
+#     result = ColumbiaStudentResource.get_by_key(uni)
+#
+#     if result:
+#         rsp = Response(json.dumps(result), status=200, content_type="application.json")
+#     else:
+#         rsp = Response("NOT FOUND", status=404, content_type="text/plain")
+#
+#     return rsp
 
-    result = ColumbiaStudentResource.get_by_key(uni)
+# https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/students/ab1234/courses
+# # https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/courses/ab1234
+# this server will have its own api
+# assuming /dev/<MS_NAME>/whatever//
+@app.route("/dev/<MS_Name>/<path>", methods=["GET"])
+def get_MS(MS_Name,path):
 
-    if result:
-        rsp = Response(json.dumps(result), status=200, content_type="application.json")
-    else:
-        rsp = Response("NOT FOUND", status=404, content_type="text/plain")
+    # determine the MS where this http call should take us
+    if MS_Name == 'courses':
+        requests.get('https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/' + MS_Name + path).content
 
-    return rsp
-
-@app.route("/api/courses/students/<project_id>", methods=["GET"])
-def get_uni_by_projects(project_id):
-    #get all courses enrolled by a particular uni
-
-    result = ColumbiaStudentResource.get_by_project_id(project_id)
-
-    if result:
-        rsp = Response(json.dumps(result), status=200, content_type="application.json")
-    else:
-        rsp = Response("NOT FOUND", status=404, content_type="text/plain")
-
-    return rsp
+    # add http get calls to other MS
 
 if __name__ == "__main__":
     app.run()
