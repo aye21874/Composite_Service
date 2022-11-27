@@ -188,14 +188,28 @@ def get_health():
 # # https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/courses/ab1234
 # this server will have its own api
 # assuming /dev/<MS_NAME>/whatever//
-@app.route("/dev/<MS_Name>/<path>", methods=["GET"])
+# /api/students/page/1
+# /api/students/page@1
+# replace ->
+@app.route("/api/<MS_Name>/<path:path>", methods=["GET", "POST", "DELETE"])
 def get_MS(MS_Name,path):
-
-    # determine the MS where this http call should take us
-    if MS_Name == 'courses':
-        requests.get('https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/' + MS_Name + path).content
-
+    if request.method == "GET":
+        # determine the MS where this http call should take us
+        req = requests.get('https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/' + MS_Name + '/' + path)
+    elif request.method == "DELETE":
+        # determine the MS where this http call should take us
+        req = requests.delete('https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/' + MS_Name + '/' + path)
+    else:
+        # determine the MS where this http call should take us
+        req = requests.post('https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/' + MS_Name + '/' + path)
+    if req.status_code == 200:
+        result = json.loads(req.content.decode('utf-8'))
+        rsp = Response(json.dumps(result), status=200, content_type="application.json")
+    else:
+        rsp = Response(str(req.status_code), status=req.status_code, content_type="text/plain")
+    return rsp
     # add http get calls to other MS
+
 
 if __name__ == "__main__":
     app.run()
