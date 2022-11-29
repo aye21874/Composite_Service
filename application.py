@@ -9,6 +9,13 @@ import json
 app = Flask(__name__)
 app.secret_key = 'agasdgasasd'
 
+
+@app.before_request
+def before_request():
+    if 'email' not in dict(session).keys() and request.endpoint != 'login' and request.endpoint != 'authorize':
+        return redirect(url_for('login'))
+
+
 # auth config
 oauth = OAuth(app)
 oauth.register(
