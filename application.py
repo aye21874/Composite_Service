@@ -1,13 +1,61 @@
 import logging.handlers
 import requests
-from flask import Flask, request, Response
-
-from ColumbiaStudentResource import ColumbiaStudentResource
+from flask import Flask, request, Response, url_for, session, redirect
+from authlib.integrations.flask_client import OAuth
 
 from datetime import datetime
 import json
 
 app = Flask(__name__)
+app.secret_key = 'agasdgasasd'
+
+# auth config
+oauth = OAuth(app)
+oauth.register(
+    name='google',
+    client_id='373950359301-b15ek6eo55mfgavseio8kgp2pcqtd6l9.apps.googleusercontent.com',
+    client_secret='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',
+    access_token_url='https://accounts.google.com/o/oauth2/token',
+    access_token_params=None,
+    authorize_url='https://accounts.google.com/o/oauth2/auth',
+    authorize_params=None,
+    api_base_url='https://www.googleapis.com/oauth2/v1/',
+    jwks_uri='https://www.googleapis.com/oauth2/v3/certs',
+    client_kwargs={'scope': 'openid profile email'}
+)
+
+
+@app.route('/')
+def hello_world():
+    email = dict(session).get('email', None)
+    return f'Hello, {email}!'
+
+
+@app.route('/login')
+def login():
+    google = oauth.create_client('google')
+    redirect_url = url_for('authorize', _external=True)
+    return google.authorize_redirect(redirect_url)
+
+
+@app.route('/authorize')
+def authorize():
+    google = oauth.create_client('google')
+    try:
+        token = google.authorize_access_token()
+    except Exception as e:
+        print(e)
+    resp = google.get('userinfo')
+    user_info = resp.json()
+    session['email'] = user_info['email']
+    return redirect('/')
+
+
+@app.route('/logout')
+def logout():
+    for key in list(session.keys()):
+        session.pop(key)
+    return redirect('/')
 
 # adding application keyword for gunicorn needs
 application = app
@@ -156,7 +204,7 @@ welcome = """
 #     rsp = Response(status=200, response=response_txt, content_type="text/html")
 #     return rsp
 
-@app.get("/api/health")
+@app.route("/api/health")
 def get_health():
     t = str(datetime.now())
     msg = {
