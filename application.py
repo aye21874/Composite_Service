@@ -10,9 +10,14 @@ app = Flask(__name__)
 app.secret_key = 'agasdgasasd'
 
 
+original_url = '/'
+
+
 @app.before_request
 def before_request():
     if 'email' not in dict(session).keys() and request.endpoint != 'login' and request.endpoint != 'authorize':
+        global original_url
+        original_url = request.base_url
         return redirect(url_for('login'))
 
 
@@ -55,7 +60,9 @@ def authorize():
     resp = google.get('userinfo')
     user_info = resp.json()
     session['email'] = user_info['email']
-    return redirect('/')
+    #redirect_url = request.args.get('previous')[-1]
+    #return redirect(redirect_url)
+    return redirect(original_url)
 
 
 @app.route('/logout')
