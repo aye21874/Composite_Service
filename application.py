@@ -21,7 +21,9 @@ def before_request():
     if verify_token(data) is None and request.endpoint != 'login' and request.endpoint != 'authorize':
         global original_url
         original_url = request.base_url
-        return redirect(url_for('login'))
+        rsp = Response("wrong token", status=401, content_type="text/plain")
+        return rsp
+        # return redirect(url_for('login'))
     # if 'email' not in dict(session).keys() and request.endpoint != 'login' and request.endpoint != 'authorize':
     #     global original_url
     #     original_url = request.base_url
@@ -64,9 +66,6 @@ def authorize():
     google = oauth.create_client('google')
     try:
         token = google.authorize_access_token()
-        # resp = google.get('userinfo')
-        # user_info = resp.json()
-        # session['email'] = user_info['email']
         session['token'] = token
     except Exception as e:
         print(e)
