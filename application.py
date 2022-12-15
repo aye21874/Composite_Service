@@ -281,9 +281,11 @@ def get_MS(MS_Name,path):
         req = requests.get('https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/' + MS_Name + '/' + path)
     elif request.method == "DELETE":
         req = requests.delete('https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/' + MS_Name + '/' + path)
-    else:
+    elif request.method == "POST":
         data = request.get_json()
         req = requests.post('https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/' + MS_Name + '/' + path, data=data)
+    else:
+        return Response("Method not allowed", status=405, content_type="text/plain")
     if req.status_code == 200:
         result = json.loads(req.content.decode('utf-8'))
         rsp = Response(json.dumps(result), status=200, content_type="application.json")
@@ -332,7 +334,8 @@ def student_by_uni(uni):
             result['student_contact']['phones'] = True
         if req5.status_code == 200:
             result['student_contact']['emails'] = True
-    else:
+
+    elif request.method == "POST":
         result = {'student_info': False, 'student_courses': False,
                   'student_contact': {'addresses': False, 'phones': False, 'emails': False}}
         data = request.get_json()
@@ -351,6 +354,8 @@ def student_by_uni(uni):
             result['student_contact']['phones'] = True
         if req5.status_code == 200:
             result['student_contact']['emails'] = True
+    else:
+        return Response("Method not allowed", status=405, content_type="text/plain")
     rsp = Response(json.dumps(result), status=200, content_type="application.json")
     return rsp
 
