@@ -2,23 +2,32 @@ import logging.handlers
 import requests
 from flask import Flask, request, Response, url_for, session, redirect
 from authlib.integrations.flask_client import OAuth
+from flask_cors import CORS
 
 from datetime import datetime
 import json
 
 app = Flask(__name__)
 app.secret_key = 'agasdgasasd'
-
+CORS(app)
 
 original_url = '/'
 
 
 @app.before_request
 def before_request():
-    if 'email' not in dict(session).keys() and request.endpoint != 'login' and request.endpoint != 'authorize':
+    # need to verify the token first
+    data = request.get_json()
+    if verify_token(data) is None and request.endpoint != 'login' and request.endpoint != 'authorize':
         global original_url
         original_url = request.base_url
         return redirect(url_for('login'))
+    # if 'email' not in dict(session).keys() and request.endpoint != 'login' and request.endpoint != 'authorize':
+    #     global original_url
+    #     original_url = request.base_url
+    #     google = oauth.create_client('google')
+    #     redirect_url = url_for('authorize', _external=True)
+    #     return google.authorize_redirect(redirect_url)
 
 
 # auth config
@@ -37,10 +46,10 @@ oauth.register(
 )
 
 
-@app.route('/')
-def hello_world():
-    email = dict(session).get('email', None)
-    return f'Hello, {email}!'
+@app.route('/get_token')
+def get_token():
+    token = dict(session).get('token', None)
+    return token
 
 
 @app.route('/login')
@@ -55,13 +64,12 @@ def authorize():
     google = oauth.create_client('google')
     try:
         token = google.authorize_access_token()
+        # resp = google.get('userinfo')
+        # user_info = resp.json()
+        # session['email'] = user_info['email']
+        session['token'] = token
     except Exception as e:
         print(e)
-    resp = google.get('userinfo')
-    user_info = resp.json()
-    session['email'] = user_info['email']
-    #redirect_url = request.args.get('previous')[-1]
-    #return redirect(redirect_url)
     return redirect(original_url)
 
 
@@ -69,7 +77,8 @@ def authorize():
 def logout():
     for key in list(session.keys()):
         session.pop(key)
-    return redirect('/')
+    return redirect(url_for('login'))
+
 
 # adding application keyword for gunicorn needs
 application = app
@@ -78,7 +87,6 @@ application = app
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-#I Solve my own problems ( No lecture tomorrow, prof in Europe )
 # app.config['MySQL_HOST'] = 'localhost'
 
 
@@ -218,18 +226,33 @@ welcome = """
 #     rsp = Response(status=200, response=response_txt, content_type="text/html")
 #     return rsp
 
+def verify_token(data):
+    if data is None:
+        if 'token' not in session:
+            return None
+        id_token = session['token']['id_token']
+    else:
+        if 'id_token' not in data:
+            return None
+        id_token = data['id_token']
+    req = requests.get(f'https://www.googleapis.com/oauth2/v3/tokeninfo?id_token={id_token}')
+    if req.status_code != 200:
+        return None
+    else:
+        return req.json()
+
+
 @app.route("/api/health")
 def get_health():
+    # token is valid
     t = str(datetime.now())
     msg = {
         "name": "F22-Starter-Microservice",
         "health": "Good",
-        "at time": t
+        "at time": t,
     }
-
     # DFF TODO Explain status codes, content type, ... ...
-    result = Response(json.dumps(msg), status=200, content_type="application/json")
-
+    result = Response(json.dumps(msg), status=200, content_type="text/plain")
     return result
 
 
@@ -256,14 +279,12 @@ def get_health():
 @app.route("/api/<MS_Name>/<path:path>", methods=["GET", "POST", "DELETE"])
 def get_MS(MS_Name,path):
     if request.method == "GET":
-        # determine the MS where this http call should take us
         req = requests.get('https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/' + MS_Name + '/' + path)
     elif request.method == "DELETE":
-        # determine the MS where this http call should take us
         req = requests.delete('https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/' + MS_Name + '/' + path)
     else:
-        # determine the MS where this http call should take us
-        req = requests.post('https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/' + MS_Name + '/' + path)
+        data = request.get_json()
+        req = requests.post('https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/' + MS_Name + '/' + path, data=data)
     if req.status_code == 200:
         result = json.loads(req.content.decode('utf-8'))
         rsp = Response(json.dumps(result), status=200, content_type="application.json")
@@ -271,6 +292,68 @@ def get_MS(MS_Name,path):
         rsp = Response(str(req.status_code), status=req.status_code, content_type="text/plain")
     return rsp
     # add http get calls to other MS
+
+
+# universal interface
+@app.route("/composite/students/<uni>", methods=["GET", "POST", "DELETE"])
+def student_by_uni(uni):
+    if request.method == "GET":
+        result = {'student_info': None, 'student_courses': None, 'student_contact': {'addresses': None, 'phones': None, 'emails': None}}
+        req1 = requests.get(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/students/{uni}')
+        req2 = requests.get(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/courses/{uni}')
+        req3 = requests.get(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/addresses')
+        req4 = requests.get(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/phones')
+        req5 = requests.get(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/emails')
+        if req1.status_code == 200:
+            result['student_info'] = json.loads(req1.content.decode('utf-8'))
+        if req2.status_code == 200:
+            result['student_courses'] = json.loads(req2.content.decode('utf-8'))
+        if req3.status_code == 200:
+            result['student_contact']['addresses'] = json.loads(req3.content.decode('utf-8'))
+        if req4.status_code == 200:
+            result['student_contact']['phones'] = json.loads(req4.content.decode('utf-8'))
+        if req1.status_code == 200:
+            result['student_contact']['emails'] = json.loads(req5.content.decode('utf-8'))
+
+    elif request.method == "DELETE":
+        result = {'student_info': False, 'student_courses': False,
+                  'student_contact': {'addresses': False, 'phones': False, 'emails': False}}
+        req1 = requests.delete(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/students/{uni}')
+        req2 = requests.delete(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/courses/{uni}')
+        req3 = requests.delete(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/addresses')
+        req4 = requests.delete(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/phones')
+        req5 = requests.delete(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/emails')
+        if req1.status_code == 200:
+            result['student_info'] = True
+        if req2.status_code == 200:
+            result['student_courses'] = True
+        if req3.status_code == 200:
+            result['student_contact']['addresses'] = True
+        if req4.status_code == 200:
+            result['student_contact']['phones'] = True
+        if req5.status_code == 200:
+            result['student_contact']['emails'] = True
+    else:
+        result = {'student_info': False, 'student_courses': False,
+                  'student_contact': {'addresses': False, 'phones': False, 'emails': False}}
+        data = request.get_json()
+        req1 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/students/{uni}', data=data['student_info'])
+        req2 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/courses/{uni}', data=data['student_courses'])
+        req3 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/addresses', data=data['student_contact']['addresses'])
+        req4 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/phones', data=data['student_contact']['emails'])
+        req5 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/emails', data=data['student_contact']['phones'])
+        if req1.status_code == 200:
+            result['student_info'] = True
+        if req2.status_code == 200:
+            result['student_courses'] = True
+        if req3.status_code == 200:
+            result['student_contact']['addresses'] = True
+        if req4.status_code == 200:
+            result['student_contact']['phones'] = True
+        if req5.status_code == 200:
+            result['student_contact']['emails'] = True
+    rsp = Response(json.dumps(result), status=200, content_type="application.json")
+    return rsp
 
 
 if __name__ == "__main__":
