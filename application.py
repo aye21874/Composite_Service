@@ -17,8 +17,8 @@ original_url = '/'
 @app.before_request
 def before_request():
     # need to verify the token first
-    data = request.get_json()
-    if verify_token(data) is None and request.endpoint != 'login' and request.endpoint != 'authorize':
+    token = request.args.get('token')
+    if verify_token(token) is None and request.endpoint != 'login' and request.endpoint != 'authorize':
         global original_url
         original_url = request.base_url
         rsp = Response("wrong token", status=401, content_type="text/plain")
