@@ -18,9 +18,8 @@ original_url = '/'
 def before_request():
     # need to verify the token first
     token = request.args.get('token')
-    if verify_token(token) is None and request.endpoint != 'login' and request.endpoint != 'authorize':
-        global original_url
-        original_url = request.base_url
+    req = requests.get(f'https://www.googleapis.com/oauth2/v3/tokeninfo?id_token={token}')
+    if req.status_code != 200:
         rsp = Response("wrong token", status=401, content_type="text/plain")
         return rsp
         # return redirect(url_for('login'))
@@ -224,21 +223,6 @@ welcome = """
 #
 #     rsp = Response(status=200, response=response_txt, content_type="text/html")
 #     return rsp
-
-def verify_token(data):
-    if data is None:
-        if 'token' not in session:
-            return None
-        id_token = session['token']['id_token']
-    else:
-        if 'id_token' not in data:
-            return None
-        id_token = data['id_token']
-    req = requests.get(f'https://www.googleapis.com/oauth2/v3/tokeninfo?id_token={id_token}')
-    if req.status_code != 200:
-        return None
-    else:
-        return req.json()
 
 
 @app.route("/api/health")
