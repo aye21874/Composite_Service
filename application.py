@@ -323,7 +323,7 @@ def student_by_uni(uni):
         result = {'student_info': False, 'student_courses': False,
                   'student_contact': {'addresses': False, 'phones': False, 'emails': False}}
         data = request.get_json()
-        req1 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/students/{uni}', data=data['student_info'])
+        req1 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/students', data=data['student_info'])
         req2 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/courses/{uni}', data=data['student_courses'])
         req3 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/addresses', data=data['student_contact']['addresses'])
         req4 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/phones', data=data['student_contact']['emails'])
