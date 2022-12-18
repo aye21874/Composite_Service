@@ -280,7 +280,7 @@ def get_MS(MS_Name,path):
 
 
 # universal interface
-@app.route("/composite/students/<uni>", methods=["GET", "POST", "DELETE"])
+@app.route("/composite/students/<uni>", methods=["GET", "PUT", "POST", "DELETE"])
 def student_by_uni(uni):
     if request.method == "GET":
         result = {'student_info': None, 'student_courses': None, 'student_contact': {'addresses': None, 'phones': None, 'emails': None}}
@@ -308,6 +308,26 @@ def student_by_uni(uni):
         req3 = requests.delete(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/addresses')
         req4 = requests.delete(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/phones')
         req5 = requests.delete(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/emails')
+        if req1.status_code == 200:
+            result['student_info'] = True
+        if req2.status_code == 200:
+            result['student_courses'] = True
+        if req3.status_code == 200:
+            result['student_contact']['addresses'] = True
+        if req4.status_code == 200:
+            result['student_contact']['phones'] = True
+        if req5.status_code == 200:
+            result['student_contact']['emails'] = True
+
+    elif request.method == "PUT":
+        result = {'student_info': False, 'student_courses': False,
+                  'student_contact': {'addresses': False, 'phones': False, 'emails': False}}
+        data = request.get_json()
+        req1 = requests.put(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/students/{uni}', data=data['student_info'])
+        req2 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/courses/{uni}', data=data['student_courses'])
+        req3 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/addresses', data=data['student_contact']['addresses'])
+        req4 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/phones', data=data['student_contact']['emails'])
+        req5 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/emails', data=data['student_contact']['phones'])
         if req1.status_code == 200:
             result['student_info'] = True
         if req2.status_code == 200:
