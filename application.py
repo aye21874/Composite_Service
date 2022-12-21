@@ -7,11 +7,20 @@ from flask_cors import CORS
 from datetime import datetime
 import json
 
+import logging
+import boto3
+from botocore.exceptions import ClientError
+
+AWS_REGION = 'us-east-1'
+
 app = Flask(__name__)
 app.secret_key = 'agasdgasasd'
 CORS(app)
 
 original_url = '/'
+
+sns_client = boto3.client('sns', region_name=AWS_REGION, aws_access_key_id='AKIAWUFDLUE5LX7P4VPW',
+         aws_secret_access_key= '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')
 
 
 @app.before_request
@@ -279,6 +288,24 @@ def get_MS(MS_Name,path):
     # add http get calls to other MS
 
 
+def publish_message(topic_arn, message, subject):
+    """
+    Publishes a message to a topic.
+    """
+    try:
+
+        response = sns_client.publish(
+            TopicArn=topic_arn,
+            Message=message,
+            Subject=subject,
+        )
+
+    except ClientError:
+        # logger.exception(f'Could not publish message to the topic.')
+        raise
+    else:
+        return response
+
 # universal interface
 @app.route("/composite/students/<uni>", methods=["GET", "PUT", "POST", "DELETE"])
 def student_by_uni(uni):
@@ -348,16 +375,31 @@ def student_by_uni(uni):
         req3 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/addresses', json=data['student_contact']['addresses'])
         req4 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/phones', json=data['student_contact']['emails'])
         req5 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/emails', json=data['student_contact']['phones'])
+
+        cnt = 0
         if req1.status_code == 200:
             result['student_info'] = True
+            cnt += 1
         if req2.status_code == 200:
             result['student_courses'] = True
+            cnt += 1
         if req3.status_code == 200:
             result['student_contact']['addresses'] = True
+            cnt += 1
         if req4.status_code == 200:
             result['student_contact']['phones'] = True
+            cnt += 1
         if req5.status_code == 200:
             result['student_contact']['emails'] = True
+            cnt += 1
+        if cnt == 5:
+            # lambda trigger function
+            topic_arn = 'arn:aws:sns:us-east-1:455609131322:Student_Update_Course'
+            message = 'Beep-Bop'
+            subject = 'testing'
+
+            message_id = publish_message(topic_arn, message, subject)
+
     else:
         return Response("Method not allowed", status=405, content_type="text/plain")
     rsp = Response(json.dumps(result), status=200, content_type="application.json")
