@@ -323,11 +323,11 @@ def student_by_uni(uni):
         result = {'student_info': False, 'student_courses': False,
                   'student_contact': {'addresses': False, 'phones': False, 'emails': False}}
         data = request.get_json()
-        req1 = requests.put(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/students/{uni}', data=data['student_info'])
-        req2 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/courses/{uni}', data=data['student_courses'])
-        req3 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/addresses', data=data['student_contact']['addresses'])
-        req4 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/phones', data=data['student_contact']['emails'])
-        req5 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/emails', data=data['student_contact']['phones'])
+        req1 = requests.put(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/students/{uni}', json=data['student_info'])
+        req2 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/courses/{uni}', json=data['student_courses'])
+        req3 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/addresses', json=data['student_contact']['addresses'])
+        req4 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/phones', json=data['student_contact']['emails'])
+        req5 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/emails',json=data['student_contact']['phones'])
         if req1.status_code == 200:
             result['student_info'] = True
         if req2.status_code == 200:
@@ -343,11 +343,11 @@ def student_by_uni(uni):
         result = {'student_info': False, 'student_courses': False,
                   'student_contact': {'addresses': False, 'phones': False, 'emails': False}}
         data = request.get_json()
-        req1 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/students', data=data['student_info'])
-        req2 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/courses/{uni}', data=data['student_courses'])
-        req3 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/addresses', data=data['student_contact']['addresses'])
-        req4 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/phones', data=data['student_contact']['emails'])
-        req5 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/emails', data=data['student_contact']['phones'])
+        req1 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/students', json=data['student_info'])
+        req2 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/courses/{uni}', json=data['student_courses'])
+        req3 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/addresses', json=data['student_contact']['addresses'])
+        req4 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/phones', json=data['student_contact']['emails'])
+        req5 = requests.post(f'https://cfan8n3rr9.execute-api.us-east-1.amazonaws.com/dev/contacts/{uni}/emails', json=data['student_contact']['phones'])
         if req1.status_code == 200:
             result['student_info'] = True
         if req2.status_code == 200:
